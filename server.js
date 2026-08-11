@@ -377,8 +377,6 @@ async function extractMemoryWithAI(userMessage) {
   const normalizedUserMessage = typeof userMessage === 'string' ? userMessage.trim() : '';
   const emptyMemory = createEmptyMemory();
 
-  console.log("normalizedUserMessage:", normalizedUserMessage);
-
   if (!normalizedUserMessage) {
     return emptyMemory;
   }
@@ -395,13 +393,6 @@ async function extractMemoryWithAI(userMessage) {
     || /\?$/i.test(normalizedUserMessage);
 
   const hasLongTermSignal = /\b(\S+['’](da|de)\s+(yaşıyorum|çalışıyorum|okuyorum)|ben\s+.+\s+(yaşıyorum|çalışıyorum|okuyorum|oturuyorum|yaşamaktayım|yaşıyorum)|adım\s+.+|ismim\s+.+|ben\s+.+\s+doğdum|ben\s+.+\s+doğumluyum|hedefim\s+.+|amacım\s+.+|çalışıyorum|öğrenciyim|evliyim|bekarım|seviyorum|ilgileniyorum|yazılım\s+öğreniyorum|my name is|i live in|i am from|my goal is|i want to|i plan to|i am learning|i study|i use|i work as|i work at|i build|i am a|i'm a|i am an|i'm an|my occupation|my job|my hobby|my favorite|i prefer|i enjoy|i am interested in|i have been learning|i have been working on|i live in|i work in|i study in|i attend|i go to|i am based in)\b/i.test(normalizedUserMessage);
-
-  console.log({
-    hasLongTermSignal,
-    isTemporaryMessage,
-    lowerMessage
-  });
-  console.log(">>> hasLongTermSignal =", hasLongTermSignal);
 
   if (!hasLongTermSignal || isTemporaryMessage) {
     return emptyMemory;
@@ -461,10 +452,7 @@ Return JSON in this exact shape:
 
     const data = await response.json();
     const rawText = extractText(data) || '';
-    console.log(JSON.stringify(data, null, 2));
-    console.log('extractMemoryWithAI raw output_text:', rawText);
     const trimmedText = rawText.trim();
-    console.log('extractMemoryWithAI cleaned/pre-parse text:', trimmedText);
     const cleanedText = trimmedText
       .replace(/^```(?:json)?\s*/i, '')
       .replace(/\s*```$/i, '')
@@ -513,15 +501,6 @@ Return JSON in this exact shape:
     if (hasTemporaryContent) {
       return emptyMemory;
     }
-
-    console.log("=== EXTRACTED MEMORY ===");
-    console.log({
-      profile,
-      goals: filteredGoals,
-      facts: filteredFacts,
-    });
-    console.log("========================");
-    console.log("PROFILE =", profile);
 
     return {
       profile,
