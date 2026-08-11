@@ -130,16 +130,60 @@ function normalizeMemories(memories = {}) {
     ? source.facts.filter((fact) => typeof fact === 'string' && fact.trim()).map((fact) => fact.trim())
     : [];
 
-  return { profile, goals, facts };
+  const profileImportance = normalizeImportanceValue(source.profile_importance, 1);
+  const goalImportance = normalizeImportanceArray(source.goal_importance, goals.length);
+  const factImportance = normalizeImportanceArray(source.fact_importance, facts.length);
+
+  const normalized = { profile, goals, facts };
+
+  Object.defineProperties(normalized, {
+    profile_importance: {
+      value: profileImportance,
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+    goal_importance: {
+      value: goalImportance,
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+    fact_importance: {
+      value: factImportance,
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+  });
+
+  return normalized;
 }
 
 function serializeMemoryForSupabase(memories = {}) {
   const normalized = normalizeMemories(memories);
   return {
     profile: normalized.profile,
+    profile_importance: normalized.profile_importance,
     goals: normalized.goals,
+    goal_importance: normalized.goal_importance,
     facts: normalized.facts,
+    fact_importance: normalized.fact_importance,
   };
+}
+
+function normalizeImportanceValue(value, fallback = 1) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+
+  return Math.min(10, Math.max(1, Math.round(number)));
+}
+
+function normalizeImportanceArray(values, length = 0) {
+  const items = Array.isArray(values) ? values : [];
+  return Array.from({ length }, (_unused, index) => normalizeImportanceValue(items[index], 1));
 }
 
 function parseMemoryPayload(payload = {}) {
@@ -433,9 +477,18 @@ Only unclear or temporary information should return empty JSON.
 Return JSON in this exact shape:
 {
   "profile": "",
+  "profile_importance": 1,
   "goals": [],
-  "facts": []
+  "goal_importance": [],
+  "facts": [],
+  "fact_importance": []
 }
+
+Rules for importance:
+- Use integers from 1 to 10.
+- Higher means more important and more durable long-term memory.
+- Keep the existing profile/goals/facts structure unchanged.
+- Include one importance value for profile, and matching importance values for each goal and fact in the same order.
 `,
           },
           {
