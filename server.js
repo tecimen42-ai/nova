@@ -146,6 +146,14 @@ function parseMemoryPayload(payload = {}) {
   return normalizeMemories(payload);
 }
 
+function createEmptyMemory() {
+  return {
+    profile: '',
+    goals: [],
+    facts: [],
+  };
+}
+
 function isExplicitMemoryMessage(message = '') {
   const text = typeof message === 'string' ? message.trim() : '';
   return text.startsWith('profile:') || text.startsWith('goal:') || text.startsWith('fact:');
@@ -194,12 +202,12 @@ function buildMemoriesFromRows(rows = [], fallbackMemories = {}) {
 
 async function loadMemories(userId = '') {
   if (!userId) {
-    return { profile: '', goals: [], facts: [] };
+    return createEmptyMemory();
   }
 
   const accessToken = SUPABASE_SERVICE_ROLE_KEY || SUPABASE_ANON_KEY;
   if (!SUPABASE_URL || !accessToken) {
-    return { profile: '', goals: [], facts: [] };
+    return createEmptyMemory();
   }
 
   try {
@@ -208,14 +216,14 @@ async function loadMemories(userId = '') {
     });
 
     if (!response.ok) {
-      return { profile: '', goals: [], facts: [] };
+      return createEmptyMemory();
     }
 
     const rows = await response.json();
     const row = Array.isArray(rows) && rows.length ? rows[0] : null;
 
     if (!row) {
-      return { profile: '', goals: [], facts: [] };
+      return createEmptyMemory();
     }
 
     return {
@@ -225,7 +233,7 @@ async function loadMemories(userId = '') {
     };
   } catch (error) {
     console.error('Failed to load memories from Supabase.', error);
-    return { profile: '', goals: [], facts: [] };
+    return createEmptyMemory();
   }
 }
 
@@ -367,11 +375,7 @@ function extractText(payload) {
 
 async function extractMemoryWithAI(userMessage) {
   const normalizedUserMessage = typeof userMessage === 'string' ? userMessage.trim() : '';
-  const emptyMemory = {
-    profile: '',
-    goals: [],
-    facts: [],
-  };
+  const emptyMemory = createEmptyMemory();
 
   console.log("normalizedUserMessage:", normalizedUserMessage);
 
