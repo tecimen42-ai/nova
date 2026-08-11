@@ -191,6 +191,11 @@ function saveMemoriesFromUI() {
 }
 
 async function loadMessagesFromSupabase() {
+  if (typeof window !== 'undefined' && window.localStorage?.getItem('nova-skip-supabase-hydration') === '1') {
+    window.localStorage.removeItem('nova-skip-supabase-hydration');
+    return [];
+  }
+
   const userId = getCurrentUserId();
   const client = getSupabaseClient();
   if (!client || !userId) {
@@ -299,9 +304,14 @@ function renderChatList() {
 }
 
 function createNewChat() {
-  const newChatState = createNewChatStateHelper(chats, 'Yeni sohbet');
-  chats = newChatState.chats;
+  const newChatState = createNewChatStateHelper([], 'Yeni sohbet');
+  chats = [{ id: newChatState.activeChatId, title: 'Yeni sohbet', messages: [] }];
   activeChatId = newChatState.activeChatId;
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    window.localStorage.setItem('nova-skip-supabase-hydration', '1');
+  }
+
   const messages = chatShell?.querySelector('#messages');
   if (messages) {
     messages.innerHTML = '';

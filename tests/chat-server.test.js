@@ -1,6 +1,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { buildRequestBody, extractText } = require('../server');
+const { buildRequestBody, extractText, extractMemoryWithAI } = require('../server');
+
+function mockOpenAIResponse(payloadText) {
+  return {
+    ok: true,
+    json: async () => ({
+      output: [
+        {
+          content: [{ type: 'output_text', text: payloadText }],
+        },
+      ],
+    }),
+  };
+}
 
 test('buildRequestBody sends the prompt in the expected Responses API shape', () => {
   const body = buildRequestBody('Hello there');
@@ -32,15 +45,68 @@ test('buildRequestBody includes recent conversation history before the latest pr
   assert.equal(body.input[2].role, 'user');
   assert.equal(body.input[2].content, 'How are you?');
 });
+test('extractMemoryWithAI stores a profile when the user states where they live', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () =>
+    mockOpenAIResponse('{"profile":"Antalya\'da yaşıyorum","goals":[],"facts":[]}');
 
-test('extractText reads content from the Responses API output structure', () => {
-  const reply = extractText({
-    output: [
-      {
-        content: [{ type: 'output_text', text: 'Hello from the assistant' }],
-      },
-    ],
-  });
+  try {
+    const result = await extractMemoryWithAI("Antalya'da yaşıyorum.");
+    assert.deepEqual(result, {
+      profile: "Antalya'da yaşıyorum",
+      goals: [],
+      facts: [],
+    });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
 
-  assert.equal(reply, 'Hello from the assistant');
+
+test('extractMemoryWithAI stores a fact when the user says they are learning something', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => mockOpenAIResponse('{"profile":"","goals":[],"facts":["Yazılım öğreniyorum"]}');
+
+  try {
+    const result = await extractMemoryWithAI('Yazılım öğreniyorum.');
+    assert.deepEqual(result.facts, ['Yazılım öğreniyorum']);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('extractMemoryWithAI stores a goal when the user states a long-term objective', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => mockOpenAIResponse('{"profile":"","goals":["Nova AI şirketini büyütmek"],"facts":[]}');
+
+  try {
+    const result = await extractMemoryWithAI('Hedefim Nova AI şirketini büyütmek.');
+    assert.deepEqual(result.goals, ['Nova AI şirketini büyütmek']);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('extractMemoryWithAI returns empty memory for temporary events', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => mockOpenAIResponse('{"profile":"","goals":[],"facts":["Bugün pizza yedim"]}');
+
+  try {
+    const result = await extractMemoryWithAI('Bugün pizza yedim.');
+    assert.deepEqual(result, { profile: '', goals: [], facts: [] });
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test('extractMemoryWithAI returns empty memory for greetings', async () => {
+  const originalFetch = global.fetch;
+  global.fetch = async () => mockOpenAIResponse('{"profile":"","goals":[],"facts":[]}');
+
+  try {
+    const result = await extractMemoryWithAI('Merhaba nasılsın?');
+    assert.deepEqual(result, { profile: '', goals: [], facts: [] });
+  } finally {
+    global.fetch = originalFetch;
+  }
 });

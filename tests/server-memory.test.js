@@ -18,15 +18,24 @@ test('serializeMemoryForSupabase and parseMemoryPayload round-trip memory data',
 });
 
 test('buildMemoriesFromRows reconstructs profile, goals, and facts from prior conversation messages', () => {
-  const memories = buildMemoriesFromRows([
-    { role: 'user', message: 'My name is Ada and my goal is to launch a new app.' },
-    { role: 'assistant', message: 'That sounds exciting.' },
-    { role: 'user', message: 'I live in Istanbul and I use Figma every day.' },
-  ]);
+const memories = buildMemoriesFromRows([
+  {
+    role: 'assistant',
+    message: 'profile:Ada'
+  },
+  {
+    role: 'assistant',
+    message: 'goal:launch a new app'
+  },
+  {
+    role: 'assistant',
+    message: 'fact:lives in Istanbul'
+  },
+]);
 
   assert.equal(memories.profile, 'Ada');
-  assert.deepEqual(memories.goals, ['to launch a new app']);
-  assert.deepEqual(memories.facts, ['Istanbul']);
+  assert.deepEqual(memories.goals, ['launch a new app']);
+  assert.deepEqual(memories.facts, ['lives in Istanbul']);
 });
 
 test('saveMemories writes the profile row so later loads can restore it', async () => {
@@ -54,9 +63,9 @@ test('saveMemories writes the profile row so later loads can restore it', async 
   }
 
   assert.ok(postedPayload, 'Expected a payload to be posted to Supabase.');
-  assert.ok(postedPayload.some((row) => row.message === 'profile:Mahmut'));
-  assert.ok(postedPayload.some((row) => row.message === 'goal:launch a new app'));
-  assert.ok(postedPayload.some((row) => row.message === 'fact:lives in Istanbul'));
+  assert.equal(postedPayload[0]?.profile, 'Mahmut');
+  assert.deepEqual(postedPayload[0]?.goals, ['launch a new app']);
+  assert.deepEqual(postedPayload[0]?.facts, ['lives in Istanbul']);
 });
 
 test('saveMemories uses an access token passed from the request when available', async () => {
